@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <title>Gerenciador de Postagens</title>
+    
     <style>
         /* Estilização básica para o layout de grelha */
         .grid {
@@ -21,6 +22,12 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.2s;
+            position: relative;
+        }
+        .folder img {
+            width: 50px; /* Ajuste o tamanho do ícone aqui */
+            height: 50px; /* Ajuste o tamanho do ícone aqui */
+            margin-bottom: 10px; /* Espaçamento entre o ícone e o texto */
         }
         .folder:hover {
             background-color: #2563EB; /* Azul mais escuro */
@@ -30,6 +37,26 @@
         }
         .modal.show {
             display: flex; /* Exibir modal com flexbox */
+        }
+        .dropdown {
+            position: absolute; 
+            top: 10px;
+            right: 10px;
+            background-color: white; 
+            border-radius: 5px; 
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            display: none; 
+        }
+        .folder:hover .dropdown {
+            display: block; 
+        }
+        .dropdown button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #3B82F6;
+            padding: 5px 10px;
         }
     </style>
 </head>
@@ -53,10 +80,10 @@
     </div>
 </main>
 
-<!-- Modal -->
+<!-- Modal para Adicionar Novo -->
 <div class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="modal">
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-        <h2 class="text-lg font-semibold mb-4">Adicionar Novo</h2>
+        <h2 class="text-lg font-semibold mb-4">Adicionar Nova Pasta</h2>
         <label class="block mb-2" for="name">Nome:</label>
         <input type="text" id="name" class="border rounded-lg w-full p-2 mb-4" placeholder="Digite um nome">
         <div class="flex justify-between">
@@ -66,10 +93,27 @@
     </div>
 </div>
 
+<!-- Modal para Adicionar Conteúdo -->
+<div class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="modalAddContent">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h2 class="text-lg font-semibold mb-4">Adicionar Conteúdo</h2>
+        <label class="block mb-2" for="contentTitle">Título:</label>
+        <input type="text" id="contentTitle" class="border rounded-lg w-full p-2 mb-4" placeholder="Título do conteúdo">
+        
+        <label class="block mb-2" for="contentFile">Arquivo:</label>
+        <input type="file" id="contentFile" class="border rounded-lg w-full p-2 mb-4" accept="image/*,video/*">
+        
+        <div class="flex justify-between">
+            <button id="closeAddContentButton" class="bg-gray-300 py-2 px-4 rounded-lg">Cancelar</button>
+            <button id="addContentButton" class="bg-blue-500 text-white py-2 px-4 rounded-lg">Adicionar</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     // Importação das funções necessárias do Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
     // Configuração do Firebase
     const firebaseConfig = {
@@ -86,12 +130,85 @@
     const db = getFirestore(app);
 
     // Função para adicionar "pasta" na interface
-    function createFolderInUI(name) {
+    function createFolderInUI(name, id) {
         const folderContainer = document.getElementById("folderContainer");
         const folderDiv = document.createElement("div");
         folderDiv.className = 'folder';
-        folderDiv.innerText = name;
+
+        // Adicionando ícone da pasta
+        const folderIcon = document.createElement("img");
+        folderIcon.src = "./download_folder_file_icon_219533.png"; // Substitua pelo caminho correto do seu ícone
+        folderDiv.appendChild(folderIcon);
+
+        // Adiciona o texto do nome da pasta
+        const folderName = document.createElement("div");
+        folderName.textContent = name;
+        folderDiv.appendChild(folderName);
+
+        // Adicionando o dropdown
+        const dropdown = document.createElement("div");
+        dropdown.className = 'dropdown';
+
+        // Botão "Entrar"
+        const enterButton = document.createElement("button");
+        enterButton.innerText = "Entrar";
+        enterButton.onclick = () => {
+            window.location.href = `conteudo.html?folder=${encodeURIComponent(name)}`;
+        };
+
+        // Botão "Editar"
+        const editButton = document.createElement("button");
+        editButton.innerText = "Editar";
+        editButton.onclick = async () => {
+            const newName = prompt("Novo nome:", name);
+            if (newName) {
+                await updateDoc(doc(db, "categorias", id), { nome: newName });
+                folderName.textContent = newName; // Atualiza diretamente na interface
+            }
+        };
+
+        // Botão "Adicionar Conteúdo"
+        const addContentButton = document.createElement("button");
+        addContentButton.innerText = "Adicionar Conteúdo";
+        addContentButton.onclick = () => {
+            document.getElementById("modalAddContent").classList.add("show");
+            document.getElementById("contentTitle").dataset.folderId = id; // Armazenando ID da pasta
+        };
+
+        // Botão "Excluir"
+        const deleteButton = document.createElement("button");
+        deleteButton.innerText = "Excluir";
+        deleteButton.onclick = async () => {
+            const confirmDelete = confirm(`Você tem certeza que deseja excluir a pasta '${name}'?`);
+            if (confirmDelete) {
+                try {
+                    // Deletar o documento do Firestore
+                    await deleteDoc(doc(db, "categorias", id));
+                    // Remover da interface
+                    folderContainer.removeChild(folderDiv);
+                    alert(`Pasta '${name}' deletada com sucesso!`);
+                } catch (e) {
+                    console.error("Erro ao excluir documento: ", e);
+                    alert("Ocorreu um erro ao excluir a pasta.");
+                }
+            }
+        };
+
+        // Adicionar botões ao dropdown
+        dropdown.appendChild(enterButton);
+        dropdown.appendChild(editButton);
+        dropdown.appendChild(addContentButton);
+        dropdown.appendChild(deleteButton);
+        folderDiv.appendChild(dropdown);
         folderContainer.appendChild(folderDiv);
+    }
+
+    // Função para recuperar as pastas do Firestore e exibí-las
+    async function loadFolders() {
+        const querySnapshot = await getDocs(collection(db, "categorias"));
+        querySnapshot.forEach((doc) => {
+            createFolderInUI(doc.data().nome, doc.id);
+        });
     }
 
     // Gerenciamento de eventos para a criação de novas postagens
@@ -107,13 +224,11 @@
         const name = document.getElementById("name").value;
         if (name) {
             try {
-                // Adiciona nova "pasta" no Firestore
-                await addDoc(collection(db, "categorias"), {
+                const docRef = await addDoc(collection(db, "categorias"), {
                     nome: name,
                     criadoEm: new Date()
                 });
-                // Adiciona a nova "pasta" na interface do usuário
-                createFolderInUI(name);
+                createFolderInUI(name, docRef.id); // Passar o ID do documento
                 alert(`Pasta '${name}' criada com sucesso!`);
                 document.getElementById("modal").classList.remove("show");
                 document.getElementById("name").value = ''; // Limpar o campo de input
@@ -125,8 +240,47 @@
             alert("Por favor, digite um nome.");
         }
     });
+
+    // Gerenciamento de eventos para adicionar conteúdo
+    document.getElementById("closeAddContentButton").addEventListener("click", () => {
+        document.getElementById("modalAddContent").classList.remove("show");
+    });
+
+    document.getElementById("addContentButton").addEventListener("click", async () => {
+        const title = document.getElementById("contentTitle").value;
+        const fileInput = document.getElementById("contentFile").files[0];
+        const folderId = document.getElementById("contentTitle").dataset.folderId;
+
+        if (title && fileInput) {
+            try {
+                // Simulação de URL de um arquivo armazenado
+                const url = `/path/to/your/content/${fileInput.name}`; 
+                
+                // Adiciona o conteúdo ao Firestore
+                await addDoc(collection(db, "conteudos"), {
+                    title: title,
+                    url: url,
+                    folderId: folderId,
+                    createdAt: new Date()
+                });
+
+                alert("Conteúdo adicionado com sucesso!");
+                document.getElementById("modalAddContent").classList.remove("show");
+                document.getElementById("contentTitle").value = '';
+                document.getElementById("contentFile").value = null; // Limpar o input de arquivo
+            } catch (e) {
+                console.error("Erro ao adicionar conteúdo: ", e);
+                alert("Ocorreu um erro ao adicionar o conteúdo.");
+            }
+        } else {
+            alert("Por favor, preencha o título e selecione um arquivo.");
+        }
+    });
+
+    // Carregar as pastas quando a página é carregada
+    window.onload = () => {
+        loadFolders();
+    };
 </script>
 </body>
 </html>
-           
-  
