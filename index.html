@@ -28,75 +28,13 @@
         .modal {
             display: none; /* Ocultar modal por padrão */
         }
-        .modal.hidden {
-            display: none;
+        .modal.show {
+            display: flex; /* Exibir modal com flexbox */
         }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <script type="module">
-        // Importação das funções necessárias do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBQlCzlhRpSVqJsAaDwKXZlmyZQUj8OarE",
-            authDomain: "siteanunc.firebaseapp.com",
-            projectId: "siteanunc",
-            storageBucket: "siteanunc.firebasestorage.app",
-            messagingSenderId: "459459161711",
-            appId: "1:459459161711:web:ea8c52ba63203f495f679a"
-        };
-
-        // Inicializando o Firebase e o Firestore
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Função para adicionar "pasta" na interface
-        function createFolderInUI(name) {
-            const folderContainer = document.getElementById("folderContainer");
-            const folderDiv = document.createElement("div");
-            folderDiv.className = 'folder';
-            folderDiv.innerText = name;
-            folderContainer.appendChild(folderDiv);
-        }
-
-        // Gerenciamento de eventos para a criação de novas postagens
-        document.getElementById("createButton").addEventListener("click", () => {
-            document.getElementById("modal").classList.remove("hidden");
-        });
-
-        document.getElementById("closeButton").addEventListener("click", () => {
-            document.getElementById("modal").classList.add("hidden");
-        });
-
-        document.getElementById("createButtonModal").addEventListener("click", async () => {
-            const name = document.getElementById("name").value;
-            if (name) {
-                try {
-                    // Adiciona nova "pasta" no Firestore
-                    await addDoc(collection(db, "categorias"), {
-                        nome: name,
-                        criadoEm: new Date()
-                    });
-                    // Adiciona a nova "pasta" na interface do usuário
-                    createFolderInUI(name);
-                    alert(`Pasta '${name}' criada com sucesso!`);
-                    document.getElementById("modal").classList.add("hidden");
-                    document.getElementById("name").value = ''; // Limpar o campo de input
-                } catch (e) {
-                    console.error("Erro ao adicionar documento: ", e);
-                    alert("Ocorreu um erro ao criar a pasta.");
-                }
-            } else {
-                alert("Por favor, digite um nome.");
-            }
-        });
-    </script>
-</head>
-<body>
 <header class="bg-blue-600 fixed top-0 left-0 right-0 z-10 shadow-lg h-16">
     <div class="max-w-7xl mx-auto px-4 h-full flex justify-between items-center">
         <h1 class="text-white text-2xl font-bold">SOFTSISTEM</h1>
@@ -116,7 +54,7 @@
 </main>
 
 <!-- Modal -->
-<div class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="modal">
+<div class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="modal">
     <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <h2 class="text-lg font-semibold mb-4">Adicionar Novo</h2>
         <label class="block mb-2" for="name">Nome:</label>
@@ -127,5 +65,68 @@
         </div>
     </div>
 </div>
+
+<script type="module">
+    // Importação das funções necessárias do Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+    // Configuração do Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQlCzlhRpSVqJsAaDwKXZlmyZQUj8OarE",
+        authDomain: "siteanunc.firebaseapp.com",
+        projectId: "siteanunc",
+        storageBucket: "siteanunc.firebasestorage.app",
+        messagingSenderId: "459459161711",
+        appId: "1:459459161711:web:ea8c52ba63203f495f679a"
+    };
+
+    // Inicializando o Firebase e o Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Função para adicionar "pasta" na interface
+    function createFolderInUI(name) {
+        const folderContainer = document.getElementById("folderContainer");
+        const folderDiv = document.createElement("div");
+        folderDiv.className = 'folder';
+        folderDiv.innerText = name;
+        folderContainer.appendChild(folderDiv);
+    }
+
+    // Gerenciamento de eventos para a criação de novas postagens
+    document.getElementById("createButton").addEventListener("click", () => {
+        document.getElementById("modal").classList.add("show");
+    });
+
+    document.getElementById("closeButton").addEventListener("click", () => {
+        document.getElementById("modal").classList.remove("show");
+    });
+
+    document.getElementById("createButtonModal").addEventListener("click", async () => {
+        const name = document.getElementById("name").value;
+        if (name) {
+            try {
+                // Adiciona nova "pasta" no Firestore
+                await addDoc(collection(db, "categorias"), {
+                    nome: name,
+                    criadoEm: new Date()
+                });
+                // Adiciona a nova "pasta" na interface do usuário
+                createFolderInUI(name);
+                alert(`Pasta '${name}' criada com sucesso!`);
+                document.getElementById("modal").classList.remove("show");
+                document.getElementById("name").value = ''; // Limpar o campo de input
+            } catch (e) {
+                console.error("Erro ao adicionar documento: ", e);
+                alert("Ocorreu um erro ao criar a pasta.");
+            }
+        } else {
+            alert("Por favor, digite um nome.");
+        }
+    });
+</script>
 </body>
 </html>
+           
+  
