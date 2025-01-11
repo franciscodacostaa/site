@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Gerenciador de Postagens</title>
+    <style>
+        /* Estilização básica para o layout de grelha */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .folder {
+            background-color: #3B82F6; /* Azul */
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .folder:hover {
+            background-color: #2563EB; /* Azul mais escuro */
+        }
+        .modal {
+            display: none; /* Ocultar modal por padrão */
+        }
+        .modal.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <script type="module">
+        // Importação das funções necessárias do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQlCzlhRpSVqJsAaDwKXZlmyZQUj8OarE",
+            authDomain: "siteanunc.firebaseapp.com",
+            projectId: "siteanunc",
+            storageBucket: "siteanunc.firebasestorage.app",
+            messagingSenderId: "459459161711",
+            appId: "1:459459161711:web:ea8c52ba63203f495f679a"
+        };
+
+        // Inicializando o Firebase e o Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Função para adicionar "pasta" na interface
+        function createFolderInUI(name) {
+            const folderContainer = document.getElementById("folderContainer");
+            const folderDiv = document.createElement("div");
+            folderDiv.className = 'folder';
+            folderDiv.innerText = name;
+            folderContainer.appendChild(folderDiv);
+        }
+
+        // Gerenciamento de eventos para a criação de novas postagens
+        document.getElementById("createButton").addEventListener("click", () => {
+            document.getElementById("modal").classList.remove("hidden");
+        });
+
+        document.getElementById("closeButton").addEventListener("click", () => {
+            document.getElementById("modal").classList.add("hidden");
+        });
+
+        document.getElementById("createButtonModal").addEventListener("click", async () => {
+            const name = document.getElementById("name").value;
+            if (name) {
+                try {
+                    // Adiciona nova "pasta" no Firestore
+                    await addDoc(collection(db, "categorias"), {
+                        nome: name,
+                        criadoEm: new Date()
+                    });
+                    // Adiciona a nova "pasta" na interface do usuário
+                    createFolderInUI(name);
+                    alert(`Pasta '${name}' criada com sucesso!`);
+                    document.getElementById("modal").classList.add("hidden");
+                    document.getElementById("name").value = ''; // Limpar o campo de input
+                } catch (e) {
+                    console.error("Erro ao adicionar documento: ", e);
+                    alert("Ocorreu um erro ao criar a pasta.");
+                }
+            } else {
+                alert("Por favor, digite um nome.");
+            }
+        });
+    </script>
+</head>
+<body>
+<header class="bg-blue-600 fixed top-0 left-0 right-0 z-10 shadow-lg h-16">
+    <div class="max-w-7xl mx-auto px-4 h-full flex justify-between items-center">
+        <h1 class="text-white text-2xl font-bold">SOFTSISTEM</h1>
+    </div>
+</header>
+
+<main class="pt-16 p-4">
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-lg font-semibold mb-4">Para admin</h2>
+        <div class="bg-blue-500 text-white text-center w-24 h-24 flex items-center justify-center rounded-lg cursor-pointer hover:bg-blue-600 transition duration-200" id="createButton">
+            Criar Novo
+        </div>
+        
+        <!-- Contêiner para as pastas (categorias) -->
+        <div id="folderContainer" class="grid"></div>
+    </div>
+</main>
+
+<!-- Modal -->
+<div class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="modal">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <h2 class="text-lg font-semibold mb-4">Adicionar Novo</h2>
+        <label class="block mb-2" for="name">Nome:</label>
+        <input type="text" id="name" class="border rounded-lg w-full p-2 mb-4" placeholder="Digite um nome">
+        <div class="flex justify-between">
+            <button id="closeButton" class="bg-gray-300 py-2 px-4 rounded-lg">Cancelar</button>
+            <button id="createButtonModal" class="bg-blue-500 text-white py-2 px-4 rounded-lg">Criar</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
